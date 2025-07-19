@@ -1,0 +1,65 @@
+# You can remove the 'version: 3.8' line as it's obsolete.
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: alemeno_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432" # Changed to 5433 on host to avoid conflicts
+    healthcheck: # <-- ADDED THIS BACK
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    healthcheck: # <-- ADDED THIS BACK
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: .
+    # Added sleep 10 as a temporary fix for race conditions with DB startup
+    command: sh -c "sleep 10 && python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy # This now works because 'db' has a healthcheck
+      redis:
+        condition: service_healthy # This now works because 'redis' has a healthcheck
+
+  celery_worker:
+    build: .
+    # IMPORTANT: Ensure 'credit_approval_system' is your actual Django project name
+    # and that your Celery app is correctly defined and discoverable at this path.
+    # The previous error was "Module 'credit_approval_system' has no attribute 'celery'".
+    command: celery -A credit_approval_system worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - web # Depends on web to ensure migrations run first
+    # Note: Using 'depends_on' without 'condition: service_healthy'
+    # means it will wait for the container to start, not for the service to be healthy.
+    # For a worker, this might be sufficient, but if you want it to wait for web to be fully up,
+    # you'd need a healthcheck on 'web' as well.
+
+volumes:
+  pg_data:

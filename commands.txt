@@ -1,0 +1,19 @@
+docker-compose up
+docker-compose down
+
+docker-compose exec db-1 bash - original not working
+docker-compose ps - database working
+
+docker ps -aqf "name=alemeno_task-db-1" - Turnaround from original loop
+
+docker exec -it f7dbe9a7db6c bash - Inside Root of database
+
+psql -U user -d alemeno_db
+
+SELECT MAX(customer_id) FROM core_customer;
+
+SELECT last_value FROM core_customer_customer_id_seq;
+
+SELECT setval('core_customer_customer_id_seq', 300, true);
+
+docker-compose exec web python manage.py ingest_initial_data - for ingesting data.
