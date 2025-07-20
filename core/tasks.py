@@ -6,14 +6,12 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from .models import Customer, Loan
 
-
 def normalize_headers(df):
     """
     Normalize column headers to lowercase with underscores and no leading/trailing spaces.
     """
     df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
     return df
-
 
 @shared_task
 def import_customer_data_task():
@@ -28,13 +26,12 @@ def import_customer_data_task():
         df = normalize_headers(df)
         print("Normalized columns:", df.columns.tolist())
 
-
         for index, row in df.iterrows():
             try:
                 customer_id = row['customer_id']
                 first_name = row['first_name']
                 last_name = row['last_name']
-                phone_number = str(int(row['phone_number']))  # Convert to string
+                phone_number = str(int(row['phone_number']))  
                 monthly_salary = Decimal(str(row['monthly_salary']))
 
                 approved_limit = (36 * monthly_salary).quantize(Decimal('100000'), rounding=ROUND_HALF_UP)
@@ -62,7 +59,6 @@ def import_customer_data_task():
         print(f"[Error] File not found: {file_path}")
     except Exception as e:
         print(f"[Import Error] {e}")
-
 
 @shared_task
 def import_loan_data_task():

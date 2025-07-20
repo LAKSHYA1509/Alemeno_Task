@@ -3,18 +3,14 @@ from decimal import Decimal, ROUND_HALF_UP
 from core.models import Customer, Loan
 from datetime import date
 
-# -------------------------------
-# Customer Registration Serializers
-# -------------------------------
-
 class CheckEligibilityResponseSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField()
     approval = serializers.BooleanField()
-    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)  # ✅ NEW FIELD
+    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)  
     corrected_interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     tenure = serializers.IntegerField()
     monthly_installment = serializers.DecimalField(max_digits=10, decimal_places=2)
-    
+
 class NestedCustomerSerializer(serializers.ModelSerializer):
     """
     Serializer for embedding customer details within other responses.
@@ -25,9 +21,6 @@ class NestedCustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = ['customer_id', 'first_name', 'last_name', 'phone_number']
-        # If 'age' is added to Customer model, uncomment the line below:
-        # fields = ['customer_id', 'first_name', 'last_name', 'phone_number', 'age']
-
 
 class CustomerRegistrationResponseSerializer(serializers.ModelSerializer):
     """
@@ -41,21 +34,15 @@ class CustomerRegistrationResponseSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'customer_id',
-            'name',             # 🐛 CRITICAL FIX: Ensure 'name' is in the fields list
+            'name',             
             'monthly_income',
             'approved_limit',
             'phone_number'
-            # If 'age' is in your Customer model and you want it in response:
-            # 'age'
+
         ]
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
-
-
-# -------------------------------
-# Eligibility Check Serializers
-# -------------------------------
 
 class CheckEligibilityRequestSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField()
@@ -78,7 +65,6 @@ class CheckEligibilityRequestSerializer(serializers.Serializer):
 
         return data
 
-
 class CustomerRegistrationRequestSerializer(serializers.Serializer):
     """
     Serializer for handling customer registration requests.
@@ -87,7 +73,7 @@ class CustomerRegistrationRequestSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=100)
     last_name = serializers.CharField(max_length=100)
     age = serializers.IntegerField()
-    # 🐛 FIX: Ensure this field name is 'monthly_income'
+
     monthly_income = serializers.DecimalField(max_digits=10, decimal_places=2)
     phone_number = serializers.CharField(max_length=20)
 
@@ -99,7 +85,6 @@ class CustomerRegistrationRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("A customer with this phone number already exists.")
         return value
 
-    # 🐛 FIX: Ensure this validation method is for 'monthly_income'
     def validate_monthly_income(self, value):
         if value <= 0:
             raise serializers.ValidationError("Monthly income must be greater than zero.")
@@ -110,69 +95,54 @@ class CustomerRegistrationRequestSerializer(serializers.Serializer):
         Create and return a new `Customer` instance, given the validated data.
         """
         monthly_salary_from_income = validated_data['monthly_income']
-        
-        # --- DEBUG PRINTS START ---
+
         print(f"\nDEBUG (Serializer Create): monthly_income = {monthly_salary_from_income} (type: {type(monthly_salary_from_income)})")
-        # --- DEBUG PRINTS END ---
 
         calculated_approved_limit_raw = 36 * monthly_salary_from_income
-        
-        # --- DEBUG PRINTS START ---
-        print(f"DEBUG (Serializer Create): raw_approved_limit = {calculated_approved_limit_raw}")
-        # --- DEBUG PRINTS END ---
 
-        # 🐛 FIX: More robust rounding to nearest lakh (100,000)
-        # Step 1: Divide by 100,000 to get the number in "lakhs"
+        print(f"DEBUG (Serializer Create): raw_approved_limit = {calculated_approved_limit_raw}")
+
         temp_val_in_lakhs = calculated_approved_limit_raw / Decimal('100000')
-        
-        # Step 2: Round this number to the nearest whole integer (e.g., 28.8 becomes 29)
-        # We use quantize with Decimal('1') to round to zero decimal places
+
         rounded_lakhs = temp_val_in_lakhs.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-        
-        # Step 3: Multiply back by 100,000 to get the final approved_limit
+
         approved_limit = rounded_lakhs * Decimal('100000')
-        
-        # Ensure the final result has 2 decimal places for consistency with the model field
+
         approved_limit = approved_limit.quantize(Decimal('0.01'))
 
-        # --- DEBUG PRINTS START ---
         print(f"DEBUG (Serializer Create): rounded_approved_limit = {approved_limit}")
-        # --- DEBUG PRINTS END ---
 
         customer = Customer.objects.create(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
-            # age=validated_data['age'], # Uncomment if you added 'age' field to Customer model
+
             phone_number=validated_data['phone_number'],
-            monthly_salary=monthly_salary_from_income, # Store as monthly_salary in model
+            monthly_salary=monthly_salary_from_income, 
             approved_limit=approved_limit,
-            current_debt=Decimal('0.00') # New customers start with 0 debt
+            current_debt=Decimal('0.00') 
         )
         return customer
         """
         Create and return a new `Customer` instance, given the validated data.
         """
         monthly_salary_from_income = validated_data['monthly_income']
-        
-        # --- DEBUG PRINTS START ---
+
         print(f"\nDEBUG (Serializer Create): monthly_income = {monthly_salary_from_income} (type: {type(monthly_salary_from_income)})")
-        
+
         calculated_approved_limit_raw = 36 * monthly_salary_from_income
         print(f"DEBUG (Serializer Create): raw_approved_limit = {calculated_approved_limit_raw}")
-        
-        # This is the line that performs the rounding to nearest lakh
+
         approved_limit = calculated_approved_limit_raw.quantize(Decimal('100000'), rounding=ROUND_HALF_UP)
         print(f"DEBUG (Serializer Create): rounded_approved_limit = {approved_limit}")
-        # --- DEBUG PRINTS END ---
 
         customer = Customer.objects.create(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
-            # age=validated_data['age'], # Uncomment if you added 'age' field to Customer model
+
             phone_number=validated_data['phone_number'],
-            monthly_salary=monthly_salary_from_income, # Store as monthly_salary in model
+            monthly_salary=monthly_salary_from_income, 
             approved_limit=approved_limit,
-            current_debt=Decimal('0.00') # New customers start with 0 debt
+            current_debt=Decimal('0.00') 
         )
         return customer
 
@@ -184,7 +154,7 @@ class CreateLoanRequestSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField()
     loan_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     tenure = serializers.IntegerField()
-    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2) # The original interest rate requested by customer
+    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2) 
 
     def validate(self, data):
         """
@@ -197,7 +167,7 @@ class CreateLoanRequestSerializer(serializers.Serializer):
 
         try:
             customer = Customer.objects.get(customer_id=customer_id)
-            data['customer'] = customer # Attach customer object for easier access in view
+            data['customer'] = customer 
         except Customer.DoesNotExist:
             raise serializers.ValidationError({"customer_id": "Customer with this ID does not exist."})
 
@@ -219,23 +189,22 @@ class CreateLoanResponseSerializer(serializers.ModelSerializer):
     """
     loan_id = serializers.IntegerField()
     customer_id = serializers.IntegerField(source='customer.customer_id')
-    loan_approved = serializers.BooleanField(source='is_approved') # Assuming you'll add an 'is_approved' field to Loan model or handle this in view
-    message = serializers.CharField() # Custom message for approval/rejection
+    loan_approved = serializers.BooleanField(source='is_approved') 
+    message = serializers.CharField() 
 
     class Meta:
         model = Loan
         fields = ['loan_id', 'customer_id', 'loan_approved', 'message', 'monthly_repayment_emi']
-        # You might want to add other fields like loan_amount, tenure, interest_rate if needed in response
-        
+
 class LoanStatementSerializer(serializers.ModelSerializer):
     """
     Serializer for displaying a detailed loan statement.
     Used for /view-statement/{customer_id}/{loan_id} endpoint.
     """
     customer_id = serializers.IntegerField(source='customer.customer_id', read_only=True)
-    # Calculate remaining EMIs based on current date
+
     remaining_emis = serializers.SerializerMethodField()
-    # Calculate EMIs due (simple calculation based on start_date and current date)
+
     emis_due = serializers.SerializerMethodField()
 
     class Meta:
@@ -250,13 +219,13 @@ class LoanStatementSerializer(serializers.ModelSerializer):
         """
         Calculates the number of EMIs due up to the current date.
         """
-        from datetime import date # Import here to avoid circular dependency if models.py imports serializers
+        from datetime import date 
         if obj.start_date is None:
             return 0
         today = date.today()
-        # Calculate months passed since start_date
+
         months_passed = (today.year - obj.start_date.year) * 12 + (today.month - obj.start_date.month)
-        # Ensure emis_due doesn't exceed total tenure
+
         return min(months_passed, obj.tenure)
 
     def get_remaining_emis(self, obj):
@@ -264,9 +233,7 @@ class LoanStatementSerializer(serializers.ModelSerializer):
         Calculates the remaining number of EMIs.
         """
         emis_due = self.get_emis_due(obj)
-        return max(0, obj.tenure - obj.emis_paid_on_time) # Simple calculation: total tenure - paid
-
-# (Ensure SingleLoanViewSerializer and any other serializers come after this)
+        return max(0, obj.tenure - obj.emis_paid_on_time) 
 
 class LoanDetailSerializer(serializers.ModelSerializer):
     """
@@ -282,19 +249,16 @@ class LoanDetailSerializer(serializers.ModelSerializer):
             'loan_id', 'customer_id', 'loan_amount', 'tenure', 'interest_rate',
             'monthly_repayment_emi', 'emis_paid_on_time', 'start_date', 'end_date'
         ]
-        
+
 class SingleLoanViewSerializer(serializers.ModelSerializer):
     """
     Serializer for /view-loan/{loan_id} endpoint.
     Includes loan details and nested customer details.
     """
-    customer = NestedCustomerSerializer(read_only=True) # Nested serializer for customer details
-    # loan_approved is a boolean indicating if the loan was approved.
-    # Assuming 'is_approved' field on Loan model, or derive it.
-    # For now, we'll derive it from interest_rate > 0.
+    customer = NestedCustomerSerializer(read_only=True) 
+
     loan_approved = serializers.SerializerMethodField()
     monthly_installment = serializers.DecimalField(source='monthly_repayment_emi', max_digits=10, decimal_places=2)
-
 
     class Meta:
         model = Loan
@@ -304,6 +268,5 @@ class SingleLoanViewSerializer(serializers.ModelSerializer):
         ]
 
     def get_loan_approved(self, obj):
-        # A simple way to determine if loan was approved: if interest_rate > 0
-        # You might have a specific 'is_approved' field in your Loan model if needed.
+
         return obj.interest_rate > 0
