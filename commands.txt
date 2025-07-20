@@ -17,3 +17,5 @@ SELECT last_value FROM core_customer_customer_id_seq;
 SELECT setval('core_customer_customer_id_seq', 300, true);
 
 docker-compose exec web python manage.py ingest_initial_data - for ingesting data.
+
+docker-compose exec web python manage.py test core - For running tests
