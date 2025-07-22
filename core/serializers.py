@@ -6,7 +6,7 @@ from datetime import date
 class CheckEligibilityResponseSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField()
     approval = serializers.BooleanField()
-    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)  
+    interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     corrected_interest_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     tenure = serializers.IntegerField()
     monthly_installment = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -34,7 +34,7 @@ class CustomerRegistrationResponseSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'customer_id',
-            'name',             
+            'name',
             'monthly_income',
             'approved_limit',
             'phone_number'

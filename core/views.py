@@ -2,6 +2,9 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from .models import Customer, Loan
 from .serializers import (
@@ -124,7 +127,7 @@ class CreateLoanView(APIView):
                             monthly_repayment_emi=monthly_installment,
                             emis_paid_on_time=0, 
                             start_date=date.today(),
-                            end_date=date.today().replace(month=date.today().month + tenure) 
+                            end_date=date.today() + relativedelta(months=+tenure)
                         )
 
                         customer.current_debt += loan_amount
