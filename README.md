@@ -4,6 +4,8 @@ A backend system for processing and approving customer loan applications. Built 
 
 ---
 
+## Project Video - https://drive.google.com/drive/folders/11iqKO-_vL7Ti4QXpzzK9KFG5JVQFttQ_?usp=sharing
+
 ## ✨ Features
 
 * **Customer Registration**
