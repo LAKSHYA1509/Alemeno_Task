@@ -4,8 +4,6 @@ A backend system for processing and approving customer loan applications. Built 
 
 ---
 
-## Before previewing project and README, Kindly Read the Project document here -> 
-
 ## ✨ Features
 
 * **Customer Registration**
